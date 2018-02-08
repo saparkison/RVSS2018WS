@@ -79,8 +79,8 @@ class Slam(object):
 		self.result = optimizer.optimize()
 		poses =  self.unwrap_results(self.result)
 
-		#self.result.print_('result ')
-		#self.draw_trajectories([poses, self.odom_global, self.visual_global],['g','b', 'r'], 3)
+		self.result.print_('result ')
+		self.draw_trajectories([poses, self.odom_global, self.visual_global],['g','b', 'r'], 3)
 
 		return poses
 

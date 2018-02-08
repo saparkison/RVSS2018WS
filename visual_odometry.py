@@ -73,38 +73,39 @@ def visual_odometry( start_num, end_num ):
     #p1 = good_new;
 
     # Transformation
-    M = cv2.estimateRigidTransform(p0, p1, False)
+    M = cv2.estimateRigidTransform(p1, p0, False)
     pose = [0,0,0];
     if M is not None:
-       print(M)
-       print(M[0][2])
-       print(M[1][2])
-       a = M[1][0]/M[0][0]
-       #print(M[1][0])
-       #print(M[0][0])
-       print(math.atan(a)*180/3.14)
+       if M[0][2] < 70 and M[1][2] < 70:
+           print(M)
+           print(M[0][2])
+           print(M[1][2])
+           a = M[1][0]/M[0][0]
+           #print(M[1][0])
+           #print(M[0][0])
+           print(math.atan(a)*180/3.14)
 
-       # Pose
-       pose = [M[0][2], M[1][2], math.atan(a)*180/3.14]
+           # Pose
+           pose = [M[0][2], M[1][2], math.atan(a)*180/3.14]
 
-       # Copy the second image
-       img1 = img2.copy()
+           # Copy the second image
+           img1 = img2.copy()
 
-       # draw the tracks
-       frame = img2.copy()
-       for i,(new,old) in enumerate(zip(good_new,good_old)):
-           a,b = new.ravel()
-           c,d = old.ravel()
-           mask = cv2.line(mask, (a,b),(c,d), color[i].tolist(), 2)
-           frame = cv2.circle(frame,(a,b),5,color[i].tolist(),-1)
-       img = cv2.add(frame,mask)
-       cv2.imshow('frame',img)
-       mask = np.zeros_like(img1)
+           # draw the tracks
+           frame = img2.copy()
+           for i,(new,old) in enumerate(zip(good_new,good_old)):
+               a,b = new.ravel()
+               c,d = old.ravel()
+               mask = cv2.line(mask, (a,b),(c,d), color[i].tolist(), 2)
+               frame = cv2.circle(frame,(a,b),5,color[i].tolist(),-1)
+           img = cv2.add(frame,mask)
+           cv2.imshow('frame',img)
+           mask = np.zeros_like(img1)
 
-       #print "I am here."
-       cv2.waitKey(10)
-       cv2.destroyAllWindows()
-       f.close()
+           #print "I am here."
+           cv2.waitKey(10)
+           cv2.destroyAllWindows()
+           f.close()
 
     #print "Now I am here!"
     return pose

@@ -56,3 +56,11 @@ print len(globalWheelPoses)
 s = slam.Slam(globalWheelPoses,gtWheelPoses,globalVOposes,gtVOposes)
 
 r = s.estimate_global()
+
+fout = open('out.txt', 'w+')
+for pose in r:
+    for d in np.nditer(pose.matrix()):
+        fout.write("%f " % d)
+    fout.write("\n")
+
+fout.close()

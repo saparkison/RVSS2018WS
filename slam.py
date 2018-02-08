@@ -13,23 +13,16 @@ import gtsam
 class Slam(object):
 	# assuming x, y, theta and delx, dely, deltheta
 	def __init__(self, odom_global,odom_relative,visual_global,visual_relative):
-		self.odom_global = self.point_to_pose(odom_global)
-		self.odom_relative = self.point_to_pose(odom_relative)
-		self.visual_global = self.point_to_pose(visual_global)
-		self.visual_relative = self.point_to_pose(visual_relative)
+		self.odom_global = odom_global
+		self.odom_relative = odom_relative
+		self.visual_global = visual_global
+		self.visual_relative = visual_relative
 
-		# print(odom_global)
-		# self.draw_trajectories([self.odom_global, self.visual_global], ['b', 'r'], 2)
-		# exit()
-
-		# print(np.asarray(visual_global))
-		# exit()
-		# print(odom_relative)
-		# print(visual_global)
-		# print(visual_relative)
-
-		# shorthand symbols:
+		# shorthand symbols
 		self.X = lambda i: int(gtsam.symbol(ord('x'), i))
+
+		# Create an empty nonlinear factor graph
+		self.graph = gtsam.NonlinearFactorGraph()
 
 	def point_to_pose(self, points):
 		# poses = [gtsam.Pose2(point[0], point[1], point[2]) for point in points]
@@ -46,23 +39,21 @@ class Slam(object):
 		n03 = np.array([n0, n0, n0])
 		nNoiseFactor3 = np.array([0.2, 0.2, 0.2]) # TODO: something about floats and major row? check cython
 
-		# Create an empty nonlinear factor graph
-		graph = gtsam.NonlinearFactorGraph()
 
 		# Add a prior on the first pose, setting it to the origin
 		priorMean = self.odom_global[0]
 		priorNoise = gtsam.noiseModel_Diagonal.Sigmas(n03)
-		graph.add(gtsam.PriorFactorPose2(self.X(1), priorMean, priorNoise))
+		self.graph.add(gtsam.PriorFactorPose2(self.X(1), priorMean, priorNoise))
 
 		# Add odometry factors
 		odometryNoise = gtsam.noiseModel_Diagonal.Sigmas(nNoiseFactor3)
 		for i, pose in enumerate(self.odom_relative):
-			graph.add(gtsam.BetweenFactorPose2(self.X(i+1), self.X(i+2), pose, odometryNoise))
+			self.graph.add(gtsam.BetweenFactorPose2(self.X(i+1), self.X(i+2), pose, odometryNoise))
 
 		# Add visual factors
 		visualNoise = gtsam.noiseModel_Diagonal.Sigmas(nNoiseFactor3)
 		for i, pose in enumerate(self.visual_relative):
-			graph.add(gtsam.BetweenFactorPose2(self.X(i+1), self.X(i+2), pose, visualNoise))
+			self.graph.add(gtsam.BetweenFactorPose2(self.X(i+1), self.X(i+2), pose, visualNoise))
 
 		# set initial guess to odometry estimates
 		initialEstimate = gtsam.Values()
@@ -78,19 +69,20 @@ class Slam(object):
 		
 		# graph.print_('graph')
 		# initialEstimate.print_('initialEstimate ')
-		optimizer = gtsam.LevenbergMarquardtOptimizer(graph, initialEstimate, params)
+		optimizer = gtsam.LevenbergMarquardtOptimizer(self.graph, initialEstimate, params)
 
 		# parameters = gtsam.GaussNewtonParams()
 		# parameters.relativeErrorTol = 1e-8
 		# parameters.maxIterations = 300
 		# optimizer = gtsam.GaussNewtonOptimizer(graph, initialEstimate, parameters)
 
-		result = optimizer.optimize()
+		self.result = optimizer.optimize()
+		poses =  self.unwrap_results(self.result)
 
-		# result.print_('result ')
-		# self.draw_trajectories([self.odom_global, self.visual_global], ['b', 'r'], 2)
+		self.result.print_('result ')
+		self.draw_trajectories([poses, self.odom_global, self.visual_global],['g','b', 'r'], 3)
 
-		return self.unwrap_results(result)
+		return poses
 
 
 
@@ -98,7 +90,7 @@ class Slam(object):
 		poses = []
 		for i in range(result.keys().size()):
 			pose = result.atPose2(self.X(i+1))
-			poses.append([pose.x(), pose.y(), np.rad2deg(pose.theta())])
+			poses.append(pose)
 
 		return poses
 
